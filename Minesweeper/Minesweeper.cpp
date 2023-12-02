@@ -70,6 +70,10 @@ bool areValidIndices(int x, int y, size_t size)
 {
 	return x >= 0 && y >= 0 && x < size && y < size;
 }
+bool isDigit(char c)
+{
+	return c >= '1' && c <= '9';
+}
 unsigned userInput(unsigned min, unsigned max)
 {
 	int n;
@@ -208,7 +212,7 @@ void printField(size_t size, int remainingMinesToMark)
 			}
 			else
 			{
-				if (field[i][j] >= '1' && field[i][j] <= '9')
+				if (isDigit(field[i][j]))
 				{
 					setColor(getColor(field[i][j]));
 				}
@@ -354,7 +358,7 @@ int main()
 			setProximities(size);
 			hasPlayedFirstTurn = true;
 		}
-		handleCommand(command, size, y, x, isLoser, remainingUnvisitedCount, remainingMinesToMark);//
+		handleCommand(command, size, y, x, isLoser, remainingUnvisitedCount, remainingMinesToMark);
 		if (remainingUnvisitedCount <= mineCount)
 		{
 			uncoverAllMines(size);
