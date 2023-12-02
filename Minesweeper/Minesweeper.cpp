@@ -6,15 +6,16 @@ constexpr size_t MIN_BOARD_SIZE = 3;
 constexpr size_t MAX_BOARD_SIZE = 10;
 constexpr size_t MAX_COMMAND_LENGTH = 7;
 
-const int DEFAULT_CONSOLE_COLOR = 0x07;
-const int MINE_COLOR = 0x0C;
+const unsigned DEFAULT_CONSOLE_COLOR = 0x07;
+const unsigned MINE_COLOR = 0x0C;
+const unsigned MARKED_MINE_COLOR = 0x0B;
 
 const char MINE_SYMBOL = '*';
-const char DEFAULT_SYMBOL = '-';
+const char OPENED_FREE_CELL_SYMBOL = '-';
 const char MARKED_MINE_SYMBOL = 'M';
 const char UNVISITED_CELL_SYMBOL = 'o';
 
-const unsigned directions[8][2] = { {-1, 0}, {0, 1}, {1, 0}, {0, -1}, {-1, -1}, {-1, 1}, {1, 1}, {1, -1} }; //resp - up, right, down, left, top-left, top-right, bottom-right, bottom-left
+const int directions[8][2] = { {-1, 0}, {0, 1}, {1, 0}, {0, -1}, {-1, -1}, {-1, 1}, {1, 1}, {1, -1} }; //resp - up, right, down, left, top-left, top-right, bottom-right, bottom-left
 
 char field[MAX_BOARD_SIZE][MAX_BOARD_SIZE];
 bool visited[MAX_BOARD_SIZE][MAX_BOARD_SIZE] = { false };
@@ -30,7 +31,36 @@ unsigned getColor(char digit)
 {
 	unsigned digitValue = digit - '0' + 1;
 
-	return digitValue == 7 ? 0x0E : digitValue;
+	return digitValue == DEFAULT_CONSOLE_COLOR ? 0x0E : digitValue;
+}
+void printMenu()
+{
+	cout << "----------Minesweeper----------" << endl << endl;
+	cout << "Welcome to this C++ implementation of the classic Minesweeper game!" << endl << endl;
+	cout << "There are a few rules, worthy of reading: " << endl;
+	cout << "1. First, you should enter a board size (between " << MIN_BOARD_SIZE << " and " << MAX_BOARD_SIZE << ")." << endl;
+	cout << "2. Then, you should enter the amount of mines (between 1 and 3 * n, where n is the size of your board)." << endl;
+	cout << "3. You play the game by entering commands in the following format: \"[command] [x coordinate] [y coordinate]\", where command should be one of the following: " << endl;
+	cout << "\t3.1 open - you open the cell at the given x and y coordinates. If the cell contains a mine, you lose!" << endl;
+	cout << "\t3.2 mark - you mark the cell at the given x and y coordinates. This means that you suppose this cell has a mine. You cannot open a cell while it is marked." << endl;
+	cout << "\t3.3 unmark - you unmark the cell at the given x and y coordinates." << endl;
+	cout << "4. You win the game after opening all cells, which don't contain mines." << endl << endl;
+	cout << "-----------Symbols-----------" << endl << endl;
+	cout << "\"" << UNVISITED_CELL_SYMBOL << "\"" << " - this shows an unopened cell" << endl;
+	cout << "\"" << OPENED_FREE_CELL_SYMBOL << "\"" << " - this shows a cell an opened cell, which has no mines in its vicinity" << endl;
+	cout << "\"" << MARKED_MINE_SYMBOL << "\"" << " - this shows a cell you marked as a mine" << endl;
+	cout << "\"" << MINE_SYMBOL << "\"" << " - this shows a cell that contains a mine" << endl;
+	cout << "\"1\" to \"9\" - this shows the amount of mines around a given cell" << endl;
+	cout << "RMM - this shows the amount of remaining mines to mark" << endl << endl;
+	cout << "-----------Colors-----------" << endl << endl;
+	setColor(MINE_COLOR);
+	cout << "This color is reserved for mines. You will see it if you step on a mine." << endl;
+	setColor(MARKED_MINE_COLOR);
+	cout << "This color is reserved for marked mines. If you have guessed the location of a mine, this mine will be colored like this." << endl;
+	setColor(DEFAULT_CONSOLE_COLOR);
+	cout << endl;
+	cout << "That's it! Have fun!" << endl;
+	cout << endl;
 }
 unsigned getRandomValueInRange(unsigned start, unsigned end)
 {
@@ -46,12 +76,12 @@ unsigned userInput(unsigned min, unsigned max)
 	cin >> n;
 	while (n < min || n > max)
 	{
-		cout << "Entered value should be between " << min << " and " << max << " Try again!" << endl;
+		cout << "Entered value should be between " << min << " and " << max << " Try again! ";
 		cin >> n;
 	}
 	return n;
 }
-bool validateInput(char command[], unsigned x, unsigned y, size_t size)
+bool validateInput(const char command[], unsigned x, unsigned y, size_t size)
 {
 	bool isValid = true;
 	if (strcmp(command, "open") != 0 && strcmp(command, "mark") && strcmp(command, "unmark"))
@@ -78,18 +108,37 @@ void initializeField()
 	{
 		for (size_t j = 0; j < MAX_BOARD_SIZE; j++)
 		{
-			field[i][j] = DEFAULT_SYMBOL;
+			field[i][j] = OPENED_FREE_CELL_SYMBOL;
 		}
 	}
+}
+bool isInVicinity(size_t size, unsigned playerRow, unsigned playerCol, unsigned row, unsigned col)
+{
+	if (size < 4)
+	{
+		return false;
+	}
+
+	unsigned count = 0;
+	for (int i = 0; i < 8; i++)
+	{
+		int currentRow = playerRow + directions[i][0];
+		int currentCol = playerCol + directions[i][1];
+		if (currentRow == row && currentCol == col)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 void populateWithMines(size_t size, unsigned mineCount, unsigned playerRow, unsigned playerCol)
 {
 	for (unsigned i = 0; i < mineCount; i++)
 	{
-		unsigned row = getRandomValueInRange(0, size - 2);
-		unsigned col = getRandomValueInRange(0, size - 2);
+		unsigned row = getRandomValueInRange(0, size - 1);
+		unsigned col = getRandomValueInRange(0, size - 1);
 
-		if (field[row][col] == MINE_SYMBOL || (playerRow == row && playerCol == col))
+		if (field[row][col] == MINE_SYMBOL || (playerRow == row && playerCol == col) || isInVicinity(size, playerRow, playerCol, row, col))
 		{
 			i--;
 			continue;
@@ -130,10 +179,20 @@ void setProximities(size_t size)
 		}
 	}
 }
-void printField(size_t size)
+void printField(size_t size, int remainingMinesToMark)
 {
+	cout << "    RMM: " << remainingMinesToMark << endl << endl;
+
+	cout << "    ";
 	for (size_t i = 0; i < size; i++)
 	{
+		cout << i << " ";
+	}
+	cout << endl;
+
+	for (size_t i = 0; i < size; i++)
+	{
+		cout << i << "   ";
 		for (size_t j = 0; j < size; j++)
 		{
 			if (!visited[i][j])
@@ -155,7 +214,14 @@ void printField(size_t size)
 				}
 				else if (field[i][j] == MINE_SYMBOL)
 				{
-					setColor(MINE_COLOR);
+					if (markedAsMines[i][j])
+					{
+						setColor(MARKED_MINE_COLOR);
+					}
+					else
+					{
+						setColor(MINE_COLOR);
+					}
 				}
 				cout << field[i][j];
 				setColor(DEFAULT_CONSOLE_COLOR);
@@ -200,7 +266,7 @@ void uncoverAllMines(size_t size)
 		}
 	}
 }
-void handleCommand(const char command[], size_t size, unsigned row, unsigned col, bool& isLoser, unsigned& remainingUnvisitedCount)
+void handleCommand(const char command[], size_t size, unsigned row, unsigned col, bool& isLoser, unsigned& remainingUnvisitedCount, int& remainingMinesToMark)
 {
 	if (strcmp(command, "open") == 0)
 	{
@@ -228,23 +294,34 @@ void handleCommand(const char command[], size_t size, unsigned row, unsigned col
 	{
 		if (markedAsMines[row][col])
 		{
-			cout << "The cell you selected is marked as a mine, therefore you can't open it! Unmark it in order to open it" << endl;
+			cout << "This cell is already marked!" << endl;
+			shouldClearConsole = false;
+			return;
+		}
+		if (visited[row][col])
+		{
+			cout << "You cannot mark an opened cell!" << endl;
+			shouldClearConsole = false;
 			return;
 		}
 		markedAsMines[row][col] = true;
+		remainingMinesToMark--;
 	}
 	else if (strcmp(command, "unmark") == 0)
 	{
 		if (!markedAsMines[row][col])
 		{
 			cout << "The cell you selected is not marked as a mine!" << endl;
+			shouldClearConsole = false;
 			return;
 		}
 		markedAsMines[row][col] = false;
+		remainingMinesToMark++;
 	}
 }
 int main()
 {
+	printMenu();
 	srand(time(0));
 	initializeField();
 
@@ -253,12 +330,14 @@ int main()
 
 	cout << "Enter the amount of mines (between 1 and " << size * 3 << " inclusive): ";
 	unsigned mineCount = userInput(1, size * 3);
+	int remainingMinesToMark = mineCount;
 
 	system("cls");
-	printField(size);
+	printField(size, remainingMinesToMark);
 
 	bool isLoser = false;
 	bool hasPlayedFirstTurn = false;
+
 	unsigned remainingUnvisitedCount = size * size;
 	while (remainingUnvisitedCount > mineCount && !isLoser)
 	{
@@ -269,14 +348,13 @@ int main()
 		{
 			continue;
 		}
-
 		if (!hasPlayedFirstTurn)
 		{
 			populateWithMines(size, mineCount, y, x);
 			setProximities(size);
 			hasPlayedFirstTurn = true;
 		}
-		handleCommand(command, size, y, x, isLoser, remainingUnvisitedCount);
+		handleCommand(command, size, y, x, isLoser, remainingUnvisitedCount, remainingMinesToMark);//
 		if (remainingUnvisitedCount <= mineCount)
 		{
 			uncoverAllMines(size);
@@ -285,7 +363,7 @@ int main()
 		if (shouldClearConsole)
 		{
 			system("cls");
-			printField(size);
+			printField(size, remainingMinesToMark);
 		}
 		shouldClearConsole = true;
 	}
