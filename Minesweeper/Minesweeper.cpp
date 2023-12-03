@@ -323,6 +323,21 @@ void handleCommand(const char command[], size_t size, unsigned row, unsigned col
 		remainingMinesToMark++;
 	}
 }
+unsigned calculateScore(size_t size)
+{
+	unsigned score = 0;
+	for (size_t i = 0; i < size; i++)
+	{
+		for (size_t j = 0; j < size; j++)
+		{
+			if (field[i][j] == MINE_SYMBOL && markedAsMines[i][j])
+			{
+				score++;
+			}
+		}
+	}
+	return score;
+}
 int main()
 {
 	printMenu();
@@ -352,7 +367,7 @@ int main()
 		{
 			continue;
 		}
-		if (!hasPlayedFirstTurn)
+		if (!hasPlayedFirstTurn && strcmp(command, "open") == 0)
 		{
 			populateWithMines(size, mineCount, y, x);
 			setProximities(size);
@@ -373,5 +388,6 @@ int main()
 	}
 
 	cout << endl;
-	cout << (isLoser ? "You lost!" : "You won!");
+	cout << (isLoser ? "You lost!" : "You won!") << endl;
+	cout << "Score: " << calculateScore(size) << endl;
 }
