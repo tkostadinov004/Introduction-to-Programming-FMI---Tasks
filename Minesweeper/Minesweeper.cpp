@@ -85,22 +85,38 @@ unsigned userInput(unsigned min, unsigned max)
 	}
 	return n;
 }
-bool validateInput(const char command[], unsigned x, unsigned y, size_t size)
+int myStrcmp(const char* first, const char* second)
+{
+	if (!first || !second)
+	{
+		return -2;
+	}
+
+	while (*first && *second && (*first) == (*second))
+	{
+		first++;
+		second++;
+	}
+
+	int diff = (*first - *second);
+	return diff != 0 ? diff / abs(diff) : 0;
+}
+bool validateInput(const char* command, unsigned x, unsigned y, size_t size)
 {
 	bool isValid = true;
-	if (strcmp(command, "open") != 0 && strcmp(command, "mark") && strcmp(command, "unmark"))
+	if (myStrcmp(command, "open") && myStrcmp(command, "mark") && myStrcmp(command, "unmark"))
 	{
 		cout << "Enter a valid command (open, mark, unmark)!" << endl;
 		isValid = false;
 	}
 	if (x < 0 || x >= size)
 	{
-		cout << "Value of x should be between 0 and " << size << endl;
+		cout << "Value of x should be between 0 and " << size << "!" << endl;
 		isValid = false;
 	}
 	if (y < 0 || y >= size)
 	{
-		cout << "Value of y should be between 0 and " << size << endl;
+		cout << "Value of y should be between 0 and " << size << "!" << endl;
 		isValid = false;
 	}
 	return isValid;
@@ -120,7 +136,7 @@ bool isInVicinity(size_t size, unsigned playerRow, unsigned playerCol, unsigned 
 {
 	if (size < 4)
 	{
-		return false;
+		return false; //if the field's size is less than 4, we cannot find any optimal solution in some cases
 	}
 
 	unsigned count = 0;
@@ -270,9 +286,9 @@ void uncoverAllMines(size_t size)
 		}
 	}
 }
-void handleCommand(const char command[], size_t size, unsigned row, unsigned col, bool& isLoser, unsigned& remainingUnvisitedCount, int& remainingMinesToMark)
+void handleCommand(const char* command, size_t size, unsigned row, unsigned col, bool& isLoser, unsigned& remainingUnvisitedCount, int& remainingMinesToMark)
 {
-	if (strcmp(command, "open") == 0)
+	if (myStrcmp(command, "open") == 0)
 	{
 		if (markedAsMines[row][col])
 		{
@@ -294,7 +310,7 @@ void handleCommand(const char command[], size_t size, unsigned row, unsigned col
 		}
 		openAdjacentFree(size, row, col, remainingUnvisitedCount);
 	}
-	else if (strcmp(command, "mark") == 0)
+	else if (myStrcmp(command, "mark") == 0)
 	{
 		if (markedAsMines[row][col])
 		{
@@ -311,7 +327,7 @@ void handleCommand(const char command[], size_t size, unsigned row, unsigned col
 		markedAsMines[row][col] = true;
 		remainingMinesToMark--;
 	}
-	else if (strcmp(command, "unmark") == 0)
+	else if (myStrcmp(command, "unmark") == 0)
 	{
 		if (!markedAsMines[row][col])
 		{
@@ -360,14 +376,14 @@ int main()
 	unsigned remainingUnvisitedCount = size * size;
 	while (remainingUnvisitedCount > mineCount && !isLoser)
 	{
-		char command[MAX_COMMAND_LENGTH];
+		char* command = new char[MAX_COMMAND_LENGTH];
 		unsigned x, y;
 		cin >> command >> x >> y;
 		if (!validateInput(command, x, y, size))
 		{
 			continue;
 		}
-		if (!hasPlayedFirstTurn && strcmp(command, "open") == 0)
+		if (!hasPlayedFirstTurn && myStrcmp(command, "open") == 0)
 		{
 			populateWithMines(size, mineCount, y, x);
 			setProximities(size);
