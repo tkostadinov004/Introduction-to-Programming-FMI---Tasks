@@ -111,12 +111,12 @@ bool validateInput(const char* command, unsigned x, unsigned y, size_t size)
 	}
 	if (x < 0 || x >= size)
 	{
-		cout << "Value of x should be between 0 and " << size << "!" << endl;
+		cout << "Value of x should be between 0 and " << size - 1 << "!" << endl;
 		isValid = false;
 	}
 	if (y < 0 || y >= size)
 	{
-		cout << "Value of y should be between 0 and " << size << "!" << endl;
+		cout << "Value of y should be between 0 and " << size - 1 << "!" << endl;
 		isValid = false;
 	}
 	return isValid;
